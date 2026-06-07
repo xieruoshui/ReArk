@@ -1,4 +1,7 @@
 build/
+build_*/
+deploy/
+deploy_*/
 .deps/
 .codex/
 .policy/

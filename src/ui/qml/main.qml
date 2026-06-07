@@ -177,10 +177,18 @@ ApplicationWindow {
         onAccepted: mainWindow.currentFileUrl = selectedFile
     }
 
+    Timer {
+        id: automaticUpdateCheckTimer
+        interval: 3000
+        repeat: false
+        onTriggered: updateController.checkForUpdatesIfDue()
+    }
+
     Component.onCompleted: {
         if (initialFileUrl && initialFileUrl.length > 0) {
             currentFileUrl = initialFileUrl
         }
+        automaticUpdateCheckTimer.start()
         show()
     }
 

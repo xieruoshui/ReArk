@@ -395,6 +395,14 @@ Rectangle {
         onClosed: root.leaveMenuNavigationWhenClosed()
 
         Action {
+            text: updateController.checking ? qsTr("Checking for Updates...") : qsTr("Check for Updates")
+            enabled: !updateController.checking
+            onTriggered: updateController.checkForUpdates(false)
+        }
+
+        CompactMenuSeparator {}
+
+        Action {
             text: qsTr("About ReArk")
             onTriggered: {
                 var factory = Qt.createComponent("qrc:/ReArk/AboutWindow.qml")
@@ -416,5 +424,58 @@ Rectangle {
 
     SearchDialog {
         id: searchDialog
+    }
+
+    Dialog {
+        id: updateStatusDialog
+
+        property string dialogTitle: ""
+        property string dialogText: ""
+
+        title: dialogTitle
+        modal: true
+        standardButtons: Dialog.Ok
+        width: 360
+        x: Overlay.overlay ? Math.round((Overlay.overlay.width - width) / 2) : 0
+        y: Overlay.overlay ? Math.round((Overlay.overlay.height - height) / 2) : 0
+
+        contentItem: Label {
+            text: updateStatusDialog.dialogText
+            color: Material.foreground
+            wrapMode: Text.WordWrap
+            font.pixelSize: 13
+        }
+    }
+
+    Connections {
+        target: updateController
+
+        function onUpdateAvailable(version, changelog, releaseUrl, releaseDate) {
+            var factory = Qt.createComponent("qrc:/ReArk/UpdateWindow.qml")
+            if (factory.status === Component.Ready) {
+                var updateWindow = factory.createObject(null, {
+                    "currentTheme": root.currentTheme,
+                    "version": version,
+                    "changelog": changelog,
+                    "releaseUrl": releaseUrl,
+                    "releaseDate": releaseDate
+                })
+                updateWindow.show()
+            } else {
+                console.error(factory.errorString())
+            }
+        }
+
+        function onNoUpdateAvailable() {
+            updateStatusDialog.dialogTitle = qsTr("Software Update")
+            updateStatusDialog.dialogText = qsTr("ReArk is up to date.")
+            updateStatusDialog.open()
+        }
+
+        function onCheckFailed(message) {
+            updateStatusDialog.dialogTitle = qsTr("Update Check Failed")
+            updateStatusDialog.dialogText = message
+            updateStatusDialog.open()
+        }
     }
 }

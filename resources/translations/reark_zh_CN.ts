@@ -119,6 +119,26 @@
         <translation>入口点</translation>
     </message>
     <message>
+        <source>Checking for Updates...</source>
+        <translation>正在检查更新...</translation>
+    </message>
+    <message>
+        <source>Check for Updates</source>
+        <translation>检查更新</translation>
+    </message>
+    <message>
+        <source>Software Update</source>
+        <translation>软件更新</translation>
+    </message>
+    <message>
+        <source>ReArk is up to date.</source>
+        <translation>ReArk 已是最新版本。</translation>
+    </message>
+    <message>
+        <source>Update Check Failed</source>
+        <translation>更新检查失败</translation>
+    </message>
+    <message>
         <source>About ReArk</source>
         <translation>关于 ReArk</translation>
     </message>
@@ -344,6 +364,88 @@
     <message>
         <source>v%1</source>
         <translation>v%1</translation>
+    </message>
+</context>
+<context>
+    <name>UpdateController</name>
+    <message>
+        <source>The update response was not valid JSON.</source>
+        <translation>更新响应不是有效的 JSON。</translation>
+    </message>
+    <message>
+        <source>The update response did not include a release version.</source>
+        <translation>更新响应没有包含发布版本。</translation>
+    </message>
+    <message>
+        <source>GitHub refused the update request. Please try again later.</source>
+        <translation>GitHub 拒绝了更新请求，请稍后再试。</translation>
+    </message>
+    <message>
+        <source>The update information could not be found.</source>
+        <translation>找不到更新信息。</translation>
+    </message>
+    <message>
+        <source>The update server returned HTTP %1.</source>
+        <translation>更新服务器返回 HTTP %1。</translation>
+    </message>
+    <message>
+        <source>The update server could not be found.</source>
+        <translation>找不到更新服务器。</translation>
+    </message>
+    <message>
+        <source>The update connection was refused.</source>
+        <translation>更新连接被拒绝。</translation>
+    </message>
+    <message>
+        <source>The update request timed out.</source>
+        <translation>更新请求超时。</translation>
+    </message>
+    <message>
+        <source>The secure update connection failed.</source>
+        <translation>安全更新连接失败。</translation>
+    </message>
+</context>
+<context>
+    <name>UpdateWindow</name>
+    <message>
+        <source>Software Update</source>
+        <translation>软件更新</translation>
+    </message>
+    <message>
+        <source>Update Available</source>
+        <translation>发现新版本</translation>
+    </message>
+    <message>
+        <source>ReArk %1 is available.</source>
+        <translation>ReArk %1 已发布。</translation>
+    </message>
+    <message>
+        <source>Current Version</source>
+        <translation>当前版本</translation>
+    </message>
+    <message>
+        <source>Latest Version</source>
+        <translation>最新版本</translation>
+    </message>
+    <message>
+        <source>Release Date</source>
+        <translation>发布日期</translation>
+    </message>
+    <message>
+        <source>What's New</source>
+        <translation>更新内容</translation>
+    </message>
+    <message>
+        <source>No changelog information is available for this release.</source>
+        <translation>此版本没有可用的更新日志。</translation>
+    </message>
+    <message>
+        <source>Open Release Page</source>
+        <translation>打开发布页面</translation>
+    </message>
+    <message>
+        <source>Later</source>
+        <translation>稍后</translation>
     </message>
 </context>
 <context>

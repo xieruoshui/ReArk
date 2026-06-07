@@ -12,7 +12,7 @@ if(MSVC)
     add_compile_options(/Zc:__cplusplus /permissive-)
 endif()
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick Qml QuickControls2 Concurrent Multimedia LinguistTools)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick Qml QuickControls2 Concurrent Multimedia Network LinguistTools)
 
 set(TS_FILES
     "${PROJECT_SOURCE_DIR}/resources/translations/reark_zh_CN.ts"

@@ -19,6 +19,8 @@ qt_add_executable(${PROJECT_NAME}
     controller/DecompilerController.h
     controller/LanguageController.cpp
     controller/LanguageController.h
+    controller/UpdateController.cpp
+    controller/UpdateController.h
     model/DocumentContent.h
     model/OpenFileTabsModel.cpp
     model/OpenFileTabsModel.h
@@ -82,6 +84,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::QuickControls2
     Qt6::Concurrent
     Qt6::Multimedia
+    Qt6::Network
     hyle::hyle
     reark_qml_module
     reark_qml_moduleplugin

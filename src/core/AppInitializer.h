@@ -8,6 +8,7 @@
 class DecompilerController;
 class LanguageController;
 class ResourcePreviewProvider;
+class UpdateController;
 class WindowChrome;
 
 class AppInitializer {
@@ -28,6 +29,7 @@ private:
     ResourcePreviewProvider* resourcePreviewProvider_ = nullptr;
     DecompilerController* decompilerController_ = nullptr;
     LanguageController* languageController_ = nullptr;
+    UpdateController* updateController_ = nullptr;
     WindowChrome* windowChrome_ = nullptr;
 };
 
