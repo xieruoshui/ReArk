@@ -5,11 +5,14 @@
 #include <hyle.h>
 
 #include <QFileInfo>
+#include <QBuffer>
 #include <QHash>
+#include <QImage>
 #include <QJsonDocument>
 #include <QJsonParseError>
 #include <QMimeDatabase>
 #include <QMimeType>
+#include <QPainter>
 #include <QStringList>
 
 #include <algorithm>
@@ -169,6 +172,97 @@ QByteArray bytesToByteArray(const std::vector<std::byte>& bytes)
     return QByteArray(
         reinterpret_cast<const char*>(bytes.data()),
         static_cast<qsizetype>(bytes.size()));
+}
+
+QImage imageFromResourceContent(const hyle::hap::hap_resource_content& content)
+{
+    QImage image;
+    const QByteArray bytes = bytesToByteArray(content.bytes);
+    image.loadFromData(bytes);
+    return image;
+}
+
+void drawImagePreservingAspect(QPainter& painter, const QImage& image, const QRect& bounds)
+{
+    if (image.isNull() || bounds.isEmpty()) {
+        return;
+    }
+
+    const QSize scaled = image.size().scaled(bounds.size(), Qt::KeepAspectRatio);
+    const QPoint topLeft(
+        bounds.x() + (bounds.width() - scaled.width()) / 2,
+        bounds.y() + (bounds.height() - scaled.height()) / 2);
+    painter.drawImage(QRect(topLeft, scaled), image);
+}
+
+QByteArray imageToPngBytes(const QImage& image)
+{
+    if (image.isNull()) {
+        return {};
+    }
+
+    QByteArray bytes;
+    QBuffer buffer(&bytes);
+    if (!buffer.open(QIODevice::WriteOnly)) {
+        return {};
+    }
+    if (!image.save(&buffer, "PNG")) {
+        return {};
+    }
+    return bytes;
+}
+
+QByteArray composeLayeredAppIcon(const hyle::hap::hap_app_icon_content& icon)
+{
+    std::vector<QImage> backgroundLayers;
+    std::vector<QImage> foregroundLayers;
+    backgroundLayers.reserve(icon.layers.size());
+    foregroundLayers.reserve(icon.layers.size());
+
+    QSize canvasSize;
+    for (std::size_t i = 0; i < icon.layers.size(); ++i) {
+        const auto& layer = icon.layers.at(i);
+        QImage image = imageFromResourceContent(layer);
+        if (image.isNull()) {
+            continue;
+        }
+        canvasSize = canvasSize.expandedTo(image.size());
+        const bool foreground = i < icon.icon.layers.size()
+            && icon.icon.layers.at(i).role == hyle::hap::hap_app_icon_layer_role::foreground;
+        if (foreground) {
+            foregroundLayers.push_back(std::move(image));
+        } else {
+            backgroundLayers.push_back(std::move(image));
+        }
+    }
+
+    if ((backgroundLayers.empty() && foregroundLayers.empty()) || canvasSize.isEmpty()) {
+        return {};
+    }
+
+    QImage composed(canvasSize, QImage::Format_ARGB32_Premultiplied);
+    composed.fill(Qt::transparent);
+
+    QPainter painter(&composed);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+    const QRect bounds(QPoint(0, 0), canvasSize);
+    for (const auto& image : backgroundLayers) {
+        drawImagePreservingAspect(painter, image, bounds);
+    }
+    for (const auto& image : foregroundLayers) {
+        drawImagePreservingAspect(painter, image, bounds);
+    }
+    painter.end();
+
+    return imageToPngBytes(composed);
+}
+
+QByteArray appIconBytes(const hyle::hap::hap_app_icon_content& icon)
+{
+    if (icon.icon.layered) {
+        return composeLayeredAppIcon(icon);
+    }
+    return bytesToByteArray(icon.resource.bytes);
 }
 
 bool isJsonContent(const QByteArray& bytes)
@@ -561,6 +655,19 @@ OpenResult openFile(
     }
 
     context->session = std::move(*session);
+
+    auto launcherIcon = hyle::async::sync_wait(
+        context->session.read_launcher_app_icon_async(
+            context->scheduler(),
+            context->stopToken()));
+    if (launcherIcon) {
+        result.appIconBytes = appIconBytes(*launcherIcon);
+        result.appIconPath = fromUtf8(launcherIcon->icon.path);
+        result.appIconLayered = launcherIcon->icon.layered;
+        if (result.appIconPath.isEmpty()) {
+            result.appIconPath = fromUtf8(launcherIcon->resource.path);
+        }
+    }
 
     const auto sourceFileCount = context->session.source_files().size();
     result.files.reserve(sourceFileCount + context->session.resources().size() + 2U);

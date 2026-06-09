@@ -31,6 +31,9 @@ class DecompilerController : public QObject {
     Q_PROPERTY(QStringList activityLog READ activityLog NOTIFY activityLogChanged)
     Q_PROPERTY(bool hasPackage READ hasPackage NOTIFY packageChanged)
     Q_PROPERTY(QString packagePath READ packagePath NOTIFY packageChanged)
+    Q_PROPERTY(QString appIconUrl READ appIconUrl NOTIFY appIconChanged)
+    Q_PROPERTY(QString appIconPath READ appIconPath NOTIFY appIconChanged)
+    Q_PROPERTY(bool appIconLayered READ appIconLayered NOTIFY appIconChanged)
     Q_PROPERTY(bool activeSupportsDisassembly READ activeSupportsDisassembly NOTIFY activeDisassemblyChanged)
     Q_PROPERTY(bool activeDisassemblyLoading READ activeDisassemblyLoading NOTIFY activeDisassemblyChanged)
     Q_PROPERTY(QString activeDisassemblyContent READ activeDisassemblyContent NOTIFY activeDisassemblyChanged)
@@ -51,6 +54,9 @@ public:
     [[nodiscard]] QStringList activityLog() const;
     [[nodiscard]] bool hasPackage() const;
     [[nodiscard]] QString packagePath() const;
+    [[nodiscard]] QString appIconUrl() const;
+    [[nodiscard]] QString appIconPath() const;
+    [[nodiscard]] bool appIconLayered() const;
     [[nodiscard]] bool activeSupportsDisassembly() const;
     [[nodiscard]] bool activeDisassemblyLoading() const;
     [[nodiscard]] QString activeDisassemblyContent() const;
@@ -81,6 +87,7 @@ signals:
     void loadingProgressChanged();
     void activityLogChanged();
     void packageChanged();
+    void appIconChanged();
     void packageOpened(const QString& filePath);
     void activeDisassemblyChanged();
     void selectedIndexChanged();
@@ -92,6 +99,7 @@ private:
     void clearActivityLog();
     void appendActivity(const QString& activity);
     void setHasPackage(bool hasPackage);
+    void clearAppIcon();
     void applyOpenResult(quint64 requestId, HyleDecompiler::OpenResult result);
     void applySourceResult(quint64 requestId, HyleDecompiler::SourceResult result);
     void applySourceBatchResult(quint64 requestId, HyleDecompiler::SourceBatchResult result);
@@ -113,6 +121,9 @@ private:
     std::shared_ptr<HyleDecompiler::SessionContext> packageContext_;
     QString pendingPackagePath_;
     QString packagePath_;
+    QString appIconUrl_;
+    QString appIconPath_;
+    bool appIconLayered_ = false;
     bool hasPackage_ = false;
     std::set<int> foregroundLoadingNodes_;
     std::set<int> backgroundLoadingNodes_;

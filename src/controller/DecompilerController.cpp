@@ -114,6 +114,21 @@ QString DecompilerController::packagePath() const
     return hasPackage_ ? packagePath_ : QString();
 }
 
+QString DecompilerController::appIconUrl() const
+{
+    return hasPackage_ ? appIconUrl_ : QString();
+}
+
+QString DecompilerController::appIconPath() const
+{
+    return hasPackage_ ? appIconPath_ : QString();
+}
+
+bool DecompilerController::appIconLayered() const
+{
+    return hasPackage_ && appIconLayered_;
+}
+
 bool DecompilerController::activeSupportsDisassembly() const
 {
     return treeModel_.nodeHasDisassembly(tabsModel_.activeNodeIndex());
@@ -158,9 +173,14 @@ void DecompilerController::decompileFile(const QString& filePath)
     if (previewProvider_ != nullptr) {
         previewProvider_->clear();
     }
+    clearAppIcon();
     pendingPackagePath_ = filePath;
     packagePath_ = filePath;
+    const bool packageAlreadyOpen = hasPackage_;
     setHasPackage(true);
+    if (packageAlreadyOpen) {
+        emit packageChanged();
+    }
     resetLoadingState();
     tabsModel_.clear();
     hexModel_.clear();
@@ -262,6 +282,7 @@ void DecompilerController::clear()
         previewProvider_->clear();
     }
     packagePath_.clear();
+    clearAppIcon();
     setHasPackage(false);
     resetLoadingState();
     clearActivityLog();
@@ -338,6 +359,18 @@ void DecompilerController::setHasPackage(bool hasPackage)
     emit packageChanged();
 }
 
+void DecompilerController::clearAppIcon()
+{
+    if (appIconUrl_.isEmpty() && appIconPath_.isEmpty() && !appIconLayered_) {
+        return;
+    }
+
+    appIconUrl_.clear();
+    appIconPath_.clear();
+    appIconLayered_ = false;
+    emit appIconChanged();
+}
+
 void DecompilerController::applyOpenResult(quint64 requestId, HyleDecompiler::OpenResult result)
 {
     if (requestId != openRequestId_) {
@@ -357,6 +390,7 @@ void DecompilerController::applyOpenResult(quint64 requestId, HyleDecompiler::Op
         }
         pendingPackagePath_.clear();
         packagePath_.clear();
+        clearAppIcon();
         setHasPackage(false);
         resetLoadingState();
         setLoadingProgress(0.0);
@@ -372,6 +406,15 @@ void DecompilerController::applyOpenResult(quint64 requestId, HyleDecompiler::Op
     packageContext_ = std::move(result.context);
     packagePath_ = pendingPackagePath_;
     pendingPackagePath_.clear();
+    clearAppIcon();
+    appIconPath_ = std::move(result.appIconPath);
+    appIconLayered_ = result.appIconLayered;
+    if (!result.appIconBytes.isEmpty() && previewProvider_ != nullptr) {
+        appIconUrl_ = previewProvider_->storeImage(result.appIconBytes);
+    }
+    if (!appIconUrl_.isEmpty() || !appIconPath_.isEmpty() || appIconLayered_) {
+        emit appIconChanged();
+    }
     tabsModel_.clear();
     setLoadingProgress(0.22);
     appendActivity(tr("Building file tree."));

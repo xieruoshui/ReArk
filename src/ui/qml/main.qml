@@ -88,6 +88,9 @@ ApplicationWindow {
                 visible: mainWindow.activeView === "workspace" && mainWindow.hasPackage
                 fileName: mainWindow.currentFileName
                 filePath: mainWindow.currentFilePath
+                appIconUrl: decompilerController.appIconUrl
+                appIconPath: decompilerController.appIconPath
+                appIconLayered: decompilerController.appIconLayered
                 highlightTheme: mainWindow.currentHighlightTheme
                 onOpenRequested: openFileDialog.open()
                 onFileDropped: function(fileUrl) { mainWindow.openFileUrl(fileUrl) }

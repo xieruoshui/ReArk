@@ -8,6 +8,9 @@ Rectangle {
 
     property string fileName: ""
     property string filePath: ""
+    property string appIconUrl: ""
+    property string appIconPath: ""
+    property bool appIconLayered: false
     property string highlightTheme: "GitHub Dark"
     readonly property bool hasPackage: decompilerController.hasPackage
     readonly property bool darkTheme: Material.theme === Material.Dark
@@ -80,16 +83,52 @@ Rectangle {
                 anchors.fill: parent
                 spacing: 0
 
-                Label {
+                RowLayout {
                     Layout.fillWidth: true
                     Layout.leftMargin: 12
                     Layout.rightMargin: 12
-                    Layout.topMargin: 12
-                    Layout.bottomMargin: 8
-                    text: hasPackage ? root.fileName : qsTr("Drop a package to start decompiling")
-                    color: hasPackage ? Material.foreground : secondaryTextColor
-                    font.pixelSize: 12
-                    elide: Text.ElideMiddle
+                    Layout.topMargin: 8
+                    Layout.bottomMargin: 6
+                    Layout.preferredHeight: 34
+                    spacing: 9
+
+                    HoverHandler {
+                        id: appHeaderHover
+                    }
+
+                    Rectangle {
+                        Layout.preferredWidth: 28
+                        Layout.preferredHeight: 28
+                        Layout.alignment: Qt.AlignVCenter
+                        visible: hasPackage && root.appIconUrl.length > 0
+                        radius: 6
+                        color: darkTheme ? "#151b22" : "#f2f6f8"
+                        border.width: 1
+                        border.color: dividerColor
+
+                        Image {
+                            anchors.fill: parent
+                            anchors.margins: 3
+                            source: root.appIconUrl
+                            sourceSize.width: 56
+                            sourceSize.height: 56
+                            fillMode: Image.PreserveAspectFit
+                            smooth: true
+                            mipmap: true
+                        }
+                    }
+
+                    Label {
+                        Layout.fillWidth: true
+                        text: hasPackage ? root.fileName : qsTr("Drop a package to start decompiling")
+                        color: hasPackage ? Material.foreground : secondaryTextColor
+                        font.pixelSize: 12
+                        elide: Text.ElideMiddle
+                        verticalAlignment: Text.AlignVCenter
+                        ToolTip.text: root.appIconPath.length > 0 ? root.appIconPath : root.filePath
+                        ToolTip.visible: appHeaderHover.hovered && ToolTip.text.length > 0
+                        ToolTip.delay: 500
+                    }
                 }
 
                 ListView {

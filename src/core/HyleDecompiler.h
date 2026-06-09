@@ -34,6 +34,9 @@ struct OpenResult {
     QString status;
     std::vector<DecompiledSourceFile> files;
     std::shared_ptr<SessionContext> context;
+    QByteArray appIconBytes;
+    QString appIconPath;
+    bool appIconLayered = false;
 };
 
 struct SourceResult {
