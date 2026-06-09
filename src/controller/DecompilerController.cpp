@@ -608,7 +608,7 @@ void DecompilerController::startDisassemblyLoad(int nodeIndex)
     emit activeDisassemblyChanged();
 
     const quint64 requestId = openRequestId_;
-    const auto moduleId = treeModel_.nodeModuleId(nodeIndex);
+    const auto sourceFileId = treeModel_.nodeHyleId(nodeIndex);
     const auto context = packageContext_;
     const QString name = treeModel_.nodeName(nodeIndex);
 
@@ -620,8 +620,8 @@ void DecompilerController::startDisassemblyLoad(int nodeIndex)
         watcher->deleteLater();
     });
 
-    watcher->setFuture(QtConcurrent::run([context, nodeIndex, moduleId, name]() {
-        return HyleDecompiler::disassembleModuleText(context, nodeIndex, moduleId, name);
+    watcher->setFuture(QtConcurrent::run([context, nodeIndex, sourceFileId, name]() {
+        return HyleDecompiler::disassembleSourceFileText(context, nodeIndex, sourceFileId, name);
     }));
 }
 

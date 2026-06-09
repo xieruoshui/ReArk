@@ -26,6 +26,7 @@ struct DecompiledSourceFile {
     bool lazy = false;
     bool directory = false;
     std::optional<std::size_t> moduleId;
+    bool disassemblable = false;
 };
 
 class SourceTreeModel : public QAbstractListModel {
@@ -109,6 +110,7 @@ private:
         QString contentMode = QStringLiteral("text");
         std::size_t hyleId = 0;
         std::optional<std::size_t> moduleId;
+        bool disassemblable = false;
         bool lazy = false;
         bool directory = false;
         bool expanded = true;

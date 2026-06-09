@@ -684,7 +684,8 @@ OpenResult openFile(
             file.id,
             true,
             false,
-            moduleId
+            moduleId,
+            true
         });
     }
     for (const auto& resource : context->session.resources()) {
@@ -946,13 +947,13 @@ bool isSourceFileCached(
     return context && context->session.valid() && context->session.is_source_file_cached(hyleId, {});
 }
 
-DisassemblyResult disassembleModuleText(
+DisassemblyResult disassembleSourceFileText(
     const std::shared_ptr<SessionContext>& context,
     int nodeIndex,
-    std::size_t moduleId,
+    std::size_t sourceFileId,
     const QString& name)
 {
-    PerformanceTrace trace(QStringLiteral("HyleDecompiler::disassembleModuleText"));
+    PerformanceTrace trace(QStringLiteral("HyleDecompiler::disassembleSourceFileText"));
 
     DisassemblyResult result;
     result.nodeIndex = nodeIndex;
@@ -964,9 +965,9 @@ DisassemblyResult disassembleModuleText(
     }
 
     auto text = hyle::async::sync_wait(
-        context->session.disassemble_module_text_async(
+        context->session.disassemble_source_file_text_async(
             context->scheduler(),
-            moduleId,
+            sourceFileId,
             {},
             context->stopToken()));
     if (!text) {

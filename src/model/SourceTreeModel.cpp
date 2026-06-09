@@ -295,7 +295,7 @@ bool SourceTreeModel::nodeHasDisassembly(int nodeIndex) const
         return false;
     }
     const auto& node = nodes_.at(static_cast<std::size_t>(nodeIndex));
-    return node.section == QStringLiteral("source") && node.moduleId.has_value();
+    return node.section == QStringLiteral("source") && node.disassemblable;
 }
 
 bool SourceTreeModel::nodeDisassemblyLoaded(int nodeIndex) const
@@ -841,6 +841,7 @@ void SourceTreeModel::rebuildTree(std::vector<DecompiledSourceFile> files)
         }
         source.hyleId = file.hyleId;
         source.moduleId = file.moduleId;
+        source.disassemblable = file.disassemblable;
         source.lazy = file.lazy;
         source.directory = false;
         source.depth = parts.empty() ? 1 : parts.size();

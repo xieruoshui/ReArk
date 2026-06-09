@@ -82,10 +82,10 @@ struct DisassemblyResult {
 [[nodiscard]] bool isSourceFileCached(
     const std::shared_ptr<SessionContext>& context,
     std::size_t hyleId);
-[[nodiscard]] DisassemblyResult disassembleModuleText(
+[[nodiscard]] DisassemblyResult disassembleSourceFileText(
     const std::shared_ptr<SessionContext>& context,
     int nodeIndex,
-    std::size_t moduleId,
+    std::size_t sourceFileId,
     const QString& name);
 [[nodiscard]] SourceResult readResourceContent(
     const std::shared_ptr<SessionContext>& context,
