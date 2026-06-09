@@ -59,14 +59,12 @@ ToolButton {
             anchors.centerIn: parent
             spacing: 2
 
-            Text {
-                text: "\u2726"
+            Icon {
+                name: "sparkle"
                 color: root.iconColor
-                font.family: "Segoe UI Symbol"
-                font.pixelSize: 10
-                font.bold: true
+                width: 9
+                height: 9
                 anchors.verticalCenter: parent.verticalCenter
-                renderType: Text.NativeRendering
             }
 
             Text {

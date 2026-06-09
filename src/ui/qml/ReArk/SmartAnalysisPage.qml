@@ -26,7 +26,7 @@ Rectangle {
         anchors.right: parent.right
         anchors.topMargin: 16
         anchors.rightMargin: 24
-        width: Math.max(118, newChatContent.implicitWidth + 30)
+        width: Math.max(116, newChatContent.implicitWidth + 28)
         height: 36
         padding: 0
         hoverEnabled: true
@@ -44,19 +44,19 @@ Rectangle {
             anchors.centerIn: parent
             spacing: 8
 
-            Text {
-                text: "\uE8F4"
+            Icon {
+                name: "new-chat"
                 color: root.iconColor
-                font.family: "Segoe MDL2 Assets"
-                font.pixelSize: 12
+                width: 15
+                height: 15
+                strokeWidth: 1.8
                 anchors.verticalCenter: parent.verticalCenter
-                renderType: Text.NativeRendering
             }
 
             Text {
                 text: qsTr("New Chat")
                 color: root.primaryTextColor
-                font.pixelSize: 13
+                font.pixelSize: 14
                 font.weight: Font.DemiBold
                 anchors.verticalCenter: parent.verticalCenter
                 renderType: Text.NativeRendering
@@ -128,29 +128,25 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.bottom: parent.bottom
                 anchors.leftMargin: 24
-                anchors.bottomMargin: 21
+                anchors.bottomMargin: 20
                 spacing: 18
 
-                Image {
+                Icon {
+                    name: "paperclip"
+                    color: root.iconColor
                     width: 16
                     height: 16
+                    strokeWidth: 1.9
                     anchors.verticalCenter: parent.verticalCenter
-                    source: "qrc:/icons/paperclip-navy.svg"
-                    sourceSize.width: 32
-                    sourceSize.height: 32
-                    fillMode: Image.PreserveAspectFit
-                    smooth: true
                 }
 
-                Image {
+                Icon {
+                    name: "diamond"
+                    color: root.iconColor
                     width: 16
                     height: 16
+                    strokeWidth: 1.9
                     anchors.verticalCenter: parent.verticalCenter
-                    source: "qrc:/icons/diamond-navy.svg"
-                    sourceSize.width: 32
-                    sourceSize.height: 32
-                    fillMode: Image.PreserveAspectFit
-                    smooth: true
                 }
             }
 
@@ -171,14 +167,15 @@ Rectangle {
                     color: sendButton.hovered ? root.accentHoverColor : root.accentColor
                 }
 
-                contentItem: Text {
-                    text: "\uE74A"
-                    color: "#ffffff"
-                    font.family: "Segoe MDL2 Assets"
-                    font.pixelSize: 16
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    renderType: Text.NativeRendering
+                contentItem: Item {
+                    Icon {
+                        anchors.centerIn: parent
+                        name: "arrow-up"
+                        color: "#ffffff"
+                        width: 18
+                        height: 18
+                        strokeWidth: 2.1
+                    }
                 }
             }
         }
