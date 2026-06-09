@@ -59,12 +59,38 @@ ToolButton {
             anchors.centerIn: parent
             spacing: 2
 
-            Icon {
-                name: "sparkle"
-                color: root.iconColor
+            Canvas {
+                id: aiSparkleIcon
+
                 width: 9
                 height: 9
                 anchors.verticalCenter: parent.verticalCenter
+                onWidthChanged: requestPaint()
+                onHeightChanged: requestPaint()
+
+                onPaint: {
+                    const ctx = getContext("2d")
+                    ctx.clearRect(0, 0, width, height)
+                    ctx.fillStyle = root.iconColor
+                    ctx.beginPath()
+                    ctx.moveTo(width * 0.5, 0)
+                    ctx.lineTo(width * 0.62, height * 0.38)
+                    ctx.lineTo(width, height * 0.5)
+                    ctx.lineTo(width * 0.62, height * 0.62)
+                    ctx.lineTo(width * 0.5, height)
+                    ctx.lineTo(width * 0.38, height * 0.62)
+                    ctx.lineTo(0, height * 0.5)
+                    ctx.lineTo(width * 0.38, height * 0.38)
+                    ctx.closePath()
+                    ctx.fill()
+                }
+
+                Connections {
+                    target: root
+                    function onIconColorChanged() {
+                        aiSparkleIcon.requestPaint()
+                    }
+                }
             }
 
             Text {

@@ -22,9 +22,6 @@ Item {
         if (name === "new-chat") {
             return "qrc:/icons/fontawesome/square-plus.svg"
         }
-        if (name === "sparkle") {
-            return "qrc:/icons/fontawesome/wand-magic-sparkles.svg"
-        }
         return ""
     }
 
