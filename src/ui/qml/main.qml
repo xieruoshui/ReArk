@@ -22,6 +22,7 @@ ApplicationWindow {
 
     property string currentTheme: "dark"
     property string currentHighlightTheme: "GitHub Dark"
+    property string activeView: "start"
     readonly property bool effectiveDarkTheme: currentTheme === "system"
                                                ? Qt.styleHints.colorScheme === Qt.Dark
                                                : currentTheme === "dark"
@@ -35,6 +36,11 @@ ApplicationWindow {
     Material.accent: Material.Teal
 
     onEffectiveDarkThemeChanged: syncHighlightThemeWithAppTheme()
+    onHasPackageChanged: {
+        if (activeView !== "smartAnalysis") {
+            activeView = hasPackage ? "workspace" : "start"
+        }
+    }
 
     footer: RK.StatusBar {
         filePath: decompilerController.status
@@ -52,10 +58,12 @@ ApplicationWindow {
             targetWindow: mainWindow
             currentTheme: mainWindow.currentTheme
             currentHighlightTheme: mainWindow.currentHighlightTheme
+            smartAnalysisActive: mainWindow.activeView === "smartAnalysis"
             onOpenRequested: openFileDialog.open()
             onRecentFileRequested: function(filePath) { mainWindow.openRecentFilePath(filePath) }
             onThemeRequested: function(theme) { mainWindow.applyTheme(theme) }
             onHighlightThemeRequested: function(theme) { mainWindow.currentHighlightTheme = theme }
+            onSmartAnalysisRequested: mainWindow.toggleSmartAnalysisView()
             onSystemMenuRequested: function(globalPosition) {
                 windowChrome.showSystemMenu(mainWindow, globalPosition)
             }
@@ -67,7 +75,7 @@ ApplicationWindow {
 
             RK.StartPage {
                 anchors.fill: parent
-                visible: !mainWindow.hasPackage
+                visible: mainWindow.activeView === "start" && !mainWindow.hasPackage
                 busy: decompilerController.busy
                 status: decompilerController.status
                 onOpenRequested: openFileDialog.open()
@@ -77,12 +85,17 @@ ApplicationWindow {
 
             RK.MainWorkspace {
                 anchors.fill: parent
-                visible: mainWindow.hasPackage
+                visible: mainWindow.activeView === "workspace" && mainWindow.hasPackage
                 fileName: mainWindow.currentFileName
                 filePath: mainWindow.currentFilePath
                 highlightTheme: mainWindow.currentHighlightTheme
                 onOpenRequested: openFileDialog.open()
                 onFileDropped: function(fileUrl) { mainWindow.openFileUrl(fileUrl) }
+            }
+
+            RK.SmartAnalysisPage {
+                anchors.fill: parent
+                visible: mainWindow.activeView === "smartAnalysis"
             }
         }
     }
@@ -227,6 +240,15 @@ ApplicationWindow {
         if (shouldFollowTheme) {
             currentHighlightTheme = effectiveDarkTheme ? "GitHub Dark" : "GitHub Light"
         }
+    }
+
+    function toggleSmartAnalysisView() {
+        if (activeView === "smartAnalysis") {
+            activeView = hasPackage ? "workspace" : "start"
+            return
+        }
+
+        activeView = "smartAnalysis"
     }
 
     function openFileUrl(fileUrl) {

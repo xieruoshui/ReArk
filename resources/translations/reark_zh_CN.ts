@@ -513,6 +513,21 @@
     </message>
 </context>
 <context>
+    <name>SmartAnalysisPage</name>
+    <message>
+        <source>New Chat</source>
+        <translation>新建会话</translation>
+    </message>
+    <message>
+        <source>What do you want to protect?</source>
+        <translation>想要保护什么？</translation>
+    </message>
+    <message>
+        <source>Ask anything about app protection</source>
+        <translation>询问应用保护的任何问题</translation>
+    </message>
+</context>
+<context>
     <name>StartPage</name>
     <message>
         <source>Release to open</source>

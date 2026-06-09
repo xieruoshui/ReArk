@@ -6,6 +6,7 @@ ToolButton {
     id: root
 
     property string buttonType: "minimize"
+    property bool active: false
     readonly property bool darkTheme: Material.theme === Material.Dark
     readonly property bool aiButton: buttonType === "ai"
     readonly property string iconGlyph: {
@@ -36,7 +37,8 @@ ToolButton {
     padding: 0
 
     background: Rectangle {
-        color: root.hovered ? root.hoverColor : "transparent"
+        color: root.active ? (root.darkTheme ? "#40545a" : "#dceeed")
+                           : root.hovered ? root.hoverColor : "transparent"
     }
 
     contentItem: Item {

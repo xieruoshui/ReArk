@@ -10,6 +10,7 @@ Rectangle {
     property Window targetWindow
     property string currentTheme: "dark"
     property string currentHighlightTheme: "GitHub Dark"
+    property bool smartAnalysisActive: false
     property bool maximized: false
     readonly property bool darkTheme: Material.theme === Material.Dark
     readonly property bool windowActive: !targetWindow || targetWindow.active
@@ -18,6 +19,7 @@ Rectangle {
     signal recentFileRequested(string filePath)
     signal themeRequested(string theme)
     signal highlightThemeRequested(string theme)
+    signal smartAnalysisRequested()
     signal systemMenuRequested(point globalPosition)
 
     implicitHeight: 32
@@ -129,8 +131,10 @@ Rectangle {
                 id: aiAnalysisButton
                 height: parent.height
                 buttonType: "ai"
+                active: root.smartAnalysisActive
                 ToolTip.text: qsTr("Smart Analysis")
                 ToolTip.visible: hovered
+                onClicked: root.smartAnalysisRequested()
             }
 
             WindowTitleButton {
