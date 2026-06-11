@@ -5,6 +5,7 @@
 #ifdef REARK_HAS_WUWE
 #include <wuwe/agent/knowledge/knowledge_document_loader.hpp>
 #include <wuwe/agent/knowledge/knowledge_pipeline.hpp>
+#include <wuwe/agent/knowledge/knowledge_tools.hpp>
 #include <wuwe/agent/memory/openai_embedding_model.hpp>
 #endif
 
@@ -104,8 +105,7 @@ struct AgentKnowledgeController::Runtime {
     Runtime(AgentSettings agentSettings, wuwe::agent::knowledge::knowledge_pipeline knowledgePipeline)
         : settings(std::move(agentSettings))
         , pipeline(std::make_unique<wuwe::agent::knowledge::knowledge_pipeline>(std::move(knowledgePipeline)))
-        , loader(wuwe::agent::knowledge::knowledge_document_loader::make_default(
-              toStdString(settings.tikaUrl.trimmed())))
+        , loader(wuwe::agent::knowledge::knowledge_document_loader::make_default())
     {
     }
 #endif
@@ -261,75 +261,41 @@ QString AgentKnowledgeController::referenceSummaryForPrompt() const
     return lines.join(QLatin1Char('\n'));
 }
 
-QString AgentKnowledgeController::searchReferencesForAgent(
-    const QString& query,
-    int limit,
-    std::stop_token stopToken) const
+QString AgentKnowledgeController::referenceSessionId() const
 {
-    if (stopToken.stop_requested()) {
-        return tr("Reference knowledge search cancelled.");
-    }
-    if (!available()) {
-        return tr("Reference knowledge is not available in this ReArk build.");
-    }
+    std::scoped_lock lock(mutex_);
+    return sessionId_;
+}
 
 #ifdef REARK_HAS_WUWE
+std::shared_ptr<AgentKnowledgeController::KnowledgeToolProviderHandle>
+AgentKnowledgeController::createKnowledgeToolProvider() const
+{
+    if (!hasReadyReferences()) {
+        return {};
+    }
+
     std::shared_ptr<Runtime> runtime;
-    QString sessionId;
     {
         std::scoped_lock lock(mutex_);
         runtime = runtime_;
-        sessionId = sessionId_;
     }
     if (!runtime || !runtime->pipeline) {
-        return tr("No reference knowledge has been indexed for this chat.");
+        return {};
     }
 
-    try {
-        std::scoped_lock runtimeLock(runtime->mutex);
-        wuwe::agent::knowledge::knowledge_query knowledgeQuery;
-        knowledgeQuery.text = toStdString(query.trimmed());
-        knowledgeQuery.limit = static_cast<std::size_t>(std::clamp(limit <= 0 ? 6 : limit, 1, 12));
-        knowledgeQuery.candidate_limit = knowledgeQuery.limit * 4;
-        knowledgeQuery.filters["reark_session_id"] = toStdString(sessionId);
-
-        const auto results = runtime->pipeline->retriever().retrieve(std::move(knowledgeQuery));
-        if (results.empty()) {
-            return tr("No reference knowledge matched the query.");
-        }
-
-        QString output;
-        int index = 1;
-        for (const auto& result : results) {
-            if (stopToken.stop_requested()) {
-                return tr("Reference knowledge search cancelled.");
-            }
-            const QString title = fromStdString(
-                result.chunk.title.empty() ? result.chunk.document_id : result.chunk.title);
-            const QString source = fromStdString(result.chunk.source_uri);
-            output += QStringLiteral("[%1] %2").arg(index++).arg(title);
-            if (!source.isEmpty()) {
-                output += QStringLiteral(" | %1").arg(source);
-            }
-            if (result.chunk.start_line != 0) {
-                output += QStringLiteral(" | lines %1-%2")
-                    .arg(result.chunk.start_line)
-                    .arg(result.chunk.end_line);
-            }
-            output += QStringLiteral(" | score %1\n").arg(result.score, 0, 'f', 3);
-            output += fromStdString(result.chunk.content).simplified();
-            output += QStringLiteral("\n\n");
-        }
-        return output.trimmed();
-    } catch (const std::exception& ex) {
-        return tr("Reference knowledge search failed: %1").arg(QString::fromUtf8(ex.what()));
-    }
-#else
-    Q_UNUSED(query)
-    Q_UNUSED(limit)
-    return {};
-#endif
+    auto provider = std::make_shared<wuwe::agent::knowledge::knowledge_tool_provider>(
+        runtime->pipeline->retriever(),
+        wuwe::agent::knowledge::knowledge_tool_options {
+            .max_search_results = 6,
+            .minimum_score = 0.0,
+        });
+    return std::make_shared<KnowledgeToolProviderHandle>(KnowledgeToolProviderHandle {
+        .runtime = std::move(runtime),
+        .provider = std::move(provider),
+    });
 }
+#endif
 
 void AgentKnowledgeController::addReferenceSource(const QString& source, const QString& kind)
 {

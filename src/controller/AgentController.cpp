@@ -5,6 +5,10 @@
 #include <wuwe/agent/llm/llm_error.h>
 #include <wuwe/agent/llm/openrouter_llm_client.h>
 #include <wuwe/agent/tools/tool.hpp>
+#if __has_include(<wuwe/agent/reasoning/reasoning.hpp>)
+#include <wuwe/agent/reasoning/reasoning.hpp>
+#define REARK_HAS_WUWE_REASONING 1
+#endif
 #endif
 
 #include "controller/AgentSettings.h"
@@ -42,7 +46,6 @@ QString fromStringView(std::string_view value)
 
 struct ReArkToolContext {
     std::shared_ptr<const DecompilerController::AgentSnapshot> snapshot;
-    AgentKnowledgeController* knowledgeController = nullptr;
     std::stop_token stopToken;
 };
 
@@ -460,43 +463,10 @@ struct explain_signature {
     }
 };
 
-struct search_reference_knowledge {
-    static constexpr std::string_view description =
-        "Search user-provided reference documents attached to the current ReArk Agent chat. "
-        "Use this for HarmonyOS, reverse engineering, security, or app analysis background knowledge.";
-
-    wuwe::field<std::string> query {
-        .description = "The technical question or concept to search in the attached reference documents."
-    };
-    wuwe::field<int> limit {
-        .default_value = 6,
-        .description = "Maximum number of cited reference chunks to return."
-    };
-
-    wuwe::llm_tool_result invoke(const ReArkToolContext& context) const
-    {
-        if (auto cancelled = cancelledToolResult(context)) {
-            return *cancelled;
-        }
-        if (context.knowledgeController == nullptr) {
-            return { .content = "No ReArk reference knowledge controller is available." };
-        }
-        return {
-            .content = toStdString(context.knowledgeController->searchReferencesForAgent(
-                QString::fromStdString(query.value),
-                limit.value,
-                context.stopToken))
-        };
-    }
-};
-
 class ReArkToolProvider {
 public:
-    explicit ReArkToolProvider(
-        std::shared_ptr<const DecompilerController::AgentSnapshot> snapshot,
-        AgentKnowledgeController* knowledgeController)
+    explicit ReArkToolProvider(std::shared_ptr<const DecompilerController::AgentSnapshot> snapshot)
         : snapshot_(std::move(snapshot))
-        , knowledgeController_(knowledgeController)
     {
         registerTool<summarize_package>();
         registerTool<list_files>();
@@ -505,9 +475,6 @@ public:
         registerTool<read_disassembly>();
         registerTool<inspect_entry_points>();
         registerTool<explain_signature>();
-        if (knowledgeController_ != nullptr && knowledgeController_->hasReadyReferences()) {
-            registerTool<search_reference_knowledge>();
-        }
     }
 
     std::vector<wuwe::llm_tool> tools() const
@@ -522,7 +489,6 @@ public:
     {
         ReArkToolContext context {
             .snapshot = snapshot_,
-            .knowledgeController = knowledgeController_,
             .stopToken = stopToken
         };
 
@@ -550,7 +516,6 @@ private:
     }
 
     std::shared_ptr<const DecompilerController::AgentSnapshot> snapshot_;
-    AgentKnowledgeController* knowledgeController_ = nullptr;
     std::vector<wuwe::llm_tool> tools_;
     std::unordered_map<std::string, std::function<wuwe::llm_tool_result(
         const std::string&,
@@ -580,6 +545,88 @@ QString agentErrorMessage(std::error_code ec, const QString& message)
     return QString::fromStdString(ec.message());
 }
 
+#ifdef REARK_HAS_WUWE_REASONING
+QString reasoningEventStatus(const wuwe::agent::reasoning::reasoning_event& event)
+{
+    namespace reasoning = wuwe::agent::reasoning;
+
+    switch (event.type) {
+    case reasoning::reasoning_event_type::started:
+        return AgentController::tr("Thinking...");
+    case reasoning::reasoning_event_type::model_started:
+        return AgentController::tr("Calling model...");
+    case reasoning::reasoning_event_type::tool_started:
+        return AgentController::tr("Running tool: %1").arg(QString::fromStdString(event.message));
+    case reasoning::reasoning_event_type::tool_completed:
+        return event.tool_result != nullptr && event.tool_result->error_code
+            ? AgentController::tr("Tool failed: %1").arg(QString::fromStdString(event.tool_call != nullptr
+                  ? event.tool_call->name
+                  : std::string {}))
+            : AgentController::tr("Tool completed");
+    case reasoning::reasoning_event_type::reflection_started:
+        return AgentController::tr("Reviewing result...");
+    case reasoning::reasoning_event_type::reflection_completed:
+        return AgentController::tr("Review completed");
+    case reasoning::reasoning_event_type::plan_created:
+        return AgentController::tr("Plan created");
+    case reasoning::reasoning_event_type::plan_step_started:
+        return AgentController::tr("Running plan step...");
+    case reasoning::reasoning_event_type::plan_step_completed:
+        return AgentController::tr("Plan step completed");
+    case reasoning::reasoning_event_type::plan_step_failed:
+        return AgentController::tr("Plan step failed");
+    case reasoning::reasoning_event_type::plan_step_blocked:
+        return AgentController::tr("Plan step blocked");
+    case reasoning::reasoning_event_type::plan_revised:
+        return AgentController::tr("Plan revised");
+    case reasoning::reasoning_event_type::completed:
+        return AgentController::tr("Ready");
+    case reasoning::reasoning_event_type::failed:
+        return AgentController::tr("Analysis failed.");
+    case reasoning::reasoning_event_type::cancelled:
+        return AgentController::tr("Analysis cancelled.");
+    case reasoning::reasoning_event_type::content_delta:
+        break;
+    }
+    return {};
+}
+
+QString conversationInputForReasoning(const QVariantList& messages)
+{
+    QStringList lines;
+    lines.append(QStringLiteral("Conversation:"));
+    for (const QVariant& item : messages) {
+        const QVariantMap message = item.toMap();
+        const QString role = message.value(QStringLiteral("role")).toString();
+        const QString content = message.value(QStringLiteral("text")).toString().trimmed();
+        if (content.isEmpty()
+            || (role != QStringLiteral("user") && role != QStringLiteral("assistant"))) {
+            continue;
+        }
+        lines.append(QStringLiteral("%1: %2").arg(
+            role == QStringLiteral("user") ? QStringLiteral("User") : QStringLiteral("Assistant"),
+            content));
+    }
+    return lines.join(QLatin1Char('\n'));
+}
+
+QString dumpReasoningJson(const nlohmann::json& value)
+{
+    return QString::fromStdString(value.dump(2));
+}
+
+QString reasoningErrorToJson(const wuwe::agent::reasoning::reasoning_error& error)
+{
+    nlohmann::json value {
+        { "completed", false },
+        { "reasoning_error", wuwe::agent::reasoning::to_string(error.code) },
+        { "underlying_error", error.underlying_error ? error.underlying_error.message() : "" },
+        { "message", error.message }
+    };
+    return dumpReasoningJson(value);
+}
+#endif
+
 #endif
 
 } // namespace
@@ -587,10 +634,16 @@ QString agentErrorMessage(std::error_code ec, const QString& message)
 struct AgentController::Runtime {
 #ifdef REARK_HAS_WUWE
     std::unique_ptr<wuwe::openrouter_llm_client> client;
-    std::shared_ptr<ReArkToolProvider> provider;
+    std::shared_ptr<ReArkToolProvider> rearkProvider;
+    std::shared_ptr<AgentKnowledgeController::KnowledgeToolProviderHandle> knowledgeProvider;
+    std::shared_ptr<wuwe::composite_tool_provider> provider;
     std::unique_ptr<wuwe::llm_agent_runner> runner;
     std::optional<wuwe::llm_agent_run> run;
     std::stop_source stopSource;
+#ifdef REARK_HAS_WUWE_REASONING
+    std::unique_ptr<wuwe::agent::reasoning::reasoning_runner> reasoningRunner;
+    std::optional<wuwe::agent::reasoning::reasoning_run> reasoningRun;
+#endif
 #endif
 };
 
@@ -650,6 +703,28 @@ QString AgentController::status() const
     return status_;
 }
 
+bool AgentController::hasReasoningDetails() const
+{
+    return !reasoningResultJson_.isEmpty()
+        || !reasoningTraceJson_.isEmpty()
+        || !reasoningUsageJson_.isEmpty();
+}
+
+QString AgentController::reasoningResultJson() const
+{
+    return reasoningResultJson_;
+}
+
+QString AgentController::reasoningTraceJson() const
+{
+    return reasoningTraceJson_;
+}
+
+QString AgentController::reasoningUsageJson() const
+{
+    return reasoningUsageJson_;
+}
+
 void AgentController::ask(const QString& question)
 {
     const QString trimmed = question.trimmed();
@@ -658,6 +733,7 @@ void AgentController::ask(const QString& question)
     }
 
     setErrorMessage({});
+    clearReasoningDetails();
     if (!available()) {
         appendMessage(QStringLiteral("user"), trimmed);
         appendMessage(QStringLiteral("assistant"), unavailableMessage(), QStringLiteral("error"));
@@ -698,10 +774,13 @@ void AgentController::ask(const QString& question)
         .referer_url = "https://www.cppmore.com/",
         .app_title = "ReArk"
     });
-    runtime_->provider = std::make_shared<ReArkToolProvider>(snapshot, knowledgeController_);
-    runtime_->runner = std::make_unique<wuwe::llm_agent_runner>(
-        *runtime_->client,
-        runtime_->provider);
+    runtime_->rearkProvider = std::make_shared<ReArkToolProvider>(snapshot);
+    runtime_->knowledgeProvider = knowledgeController_ != nullptr
+        ? knowledgeController_->createKnowledgeToolProvider()
+        : nullptr;
+    runtime_->provider = runtime_->knowledgeProvider != nullptr && runtime_->knowledgeProvider->provider != nullptr
+        ? wuwe::compose_tool_providers(runtime_->rearkProvider, runtime_->knowledgeProvider->provider)
+        : wuwe::compose_tool_providers(runtime_->rearkProvider);
     runtime_->stopSource = std::stop_source {};
 
     appendMessage(QStringLiteral("user"), trimmed);
@@ -709,29 +788,162 @@ void AgentController::ask(const QString& question)
     setStatus(tr("Thinking..."));
     setRunning(true);
 
+    QString systemPrompt =
+        QStringLiteral("You are an expert HarmonyOS NEXT application reverse engineering assistant embedded in ReArk. "
+            "Use ReArk tools whenever you need package, source, disassembly, resource, signature, or entry-point data. "
+            "When user-provided reference documents are attached, use search_knowledge for external "
+            "HarmonyOS, reverse engineering, security, or app analysis knowledge before giving detailed conclusions. "
+            "Be concise, evidence-based, and mention when requested data is not loaded yet.");
+    if (knowledgeController_ != nullptr && knowledgeController_->hasReadyReferences()) {
+        systemPrompt += QStringLiteral(
+            "\n\nAttached reference documents for this chat:\n%1"
+            "\nWhen calling search_knowledge for these documents, always include filters "
+            "{\"reark_session_id\":\"%2\"}.")
+            .arg(knowledgeController_->referenceSummaryForPrompt(),
+                 knowledgeController_->referenceSessionId());
+    }
+    systemPrompt += QStringLiteral("\n\nCurrent ReArk snapshot:\n%1")
+        .arg(snapshot->packageSummary.isEmpty() ? QStringLiteral("<none>") : snapshot->packageSummary);
+
+    QPointer<AgentController> self(this);
+
+#ifdef REARK_HAS_WUWE_REASONING
+    namespace reasoning = wuwe::agent::reasoning;
+
+    auto onEvent = [self](const reasoning::reasoning_event& event) {
+        if (!self) {
+            return;
+        }
+
+        const QString status = reasoningEventStatus(event);
+        if (!status.isEmpty()) {
+            QMetaObject::invokeMethod(self.data(), [self, status] {
+                if (!self) {
+                    return;
+                }
+                self->setStatus(status);
+            }, Qt::QueuedConnection);
+        }
+    };
+
+    const std::stop_token reasoningStopToken = runtime_->stopSource.get_token();
+    runtime_->reasoningRunner = std::make_unique<reasoning::reasoning_runner>(
+        reasoning::make_default_agentic_runner(
+            *runtime_->client,
+            runtime_->provider,
+            reasoning::default_agentic_runner_options {
+                .model = toStdString(settings.model),
+                .observer = std::move(onEvent),
+                .should_cancel = [reasoningStopToken] {
+                    return reasoningStopToken.stop_requested();
+                }
+            }));
+
+    reasoning::reasoning_request request;
+    request.input = toStdString(conversationInputForReasoning(messages_));
+    request.system_prompt = toStdString(systemPrompt);
+    request.model = toStdString(settings.model);
+    request.temperature = 0.2;
+    request.policy = reasoning::select_policy(reasoning::reasoning_task_description {
+        .input = request.input,
+        .has_tools = true,
+        .requires_tools = true
+    });
+    request.metadata.emplace("host", "ReArk");
+    request.metadata.emplace("target_summary", toStdString(boundedSnapshotText(snapshot->packageSummary, 2000)));
+
+    reasoning::reasoning_run_options options;
+    options.stop_token = runtime_->stopSource.get_token();
+    options.callbacks.on_delta = [self](std::string_view delta) {
+        if (!self) {
+            return;
+        }
+        const QString chunk = fromStringView(delta);
+        QMetaObject::invokeMethod(self.data(), [self, chunk] {
+            if (self) {
+                self->appendToActiveAssistantMessage(chunk);
+            }
+        }, Qt::QueuedConnection);
+    };
+    options.callbacks.on_done = [self](const reasoning::reasoning_result& result) {
+        if (!self) {
+            return;
+        }
+        const QString finalText = QString::fromStdString(result.content);
+        const QString resultJson = dumpReasoningJson(reasoning::reasoning_result_to_json(result));
+        const QString traceJson = dumpReasoningJson(reasoning::reasoning_trace_to_json(result.trace));
+        const QString usageJson = dumpReasoningJson(reasoning::reasoning_usage_to_json(result.usage));
+        QMetaObject::invokeMethod(self.data(), [self, finalText, resultJson, traceJson, usageJson] {
+            if (!self) {
+                return;
+            }
+            self->setReasoningDetails(resultJson, traceJson, usageJson);
+            self->setRunning(false);
+            self->finishActiveAssistantMessage(finalText.isEmpty()
+                ? AgentController::tr("No response.")
+                : finalText);
+            self->setStatus(AgentController::tr("Ready"));
+            self->resetRun();
+        }, Qt::QueuedConnection);
+    };
+    options.callbacks.on_error = [self](const reasoning::reasoning_error& error) {
+        if (!self) {
+            return;
+        }
+        QString message = error.underlying_error
+            ? agentErrorMessage(error.underlying_error, QString::fromStdString(error.message))
+            : QString::fromStdString(error.message);
+        if (message.isEmpty()) {
+            message = AgentController::tr("Analysis failed.");
+        }
+        const QString resultJson = reasoningErrorToJson(error);
+        QMetaObject::invokeMethod(self.data(), [self, message, resultJson] {
+            if (!self) {
+                return;
+            }
+            self->setReasoningDetails(resultJson, {}, {});
+            self->setErrorMessage(message);
+            self->appendToActiveAssistantMessage(message);
+            self->finishActiveAssistantMessage();
+            self->setRunning(false);
+            self->setStatus(message);
+            self->resetRun();
+        }, Qt::QueuedConnection);
+    };
+    options.callbacks.on_cancelled = [self](const reasoning::reasoning_result& result) {
+        if (!self) {
+            return;
+        }
+        const QString resultJson = dumpReasoningJson(reasoning::reasoning_result_to_json(result));
+        const QString traceJson = dumpReasoningJson(reasoning::reasoning_trace_to_json(result.trace));
+        const QString usageJson = dumpReasoningJson(reasoning::reasoning_usage_to_json(result.usage));
+        QMetaObject::invokeMethod(self.data(), [self, resultJson, traceJson, usageJson] {
+            if (!self) {
+                return;
+            }
+            self->setReasoningDetails(resultJson, traceJson, usageJson);
+            self->setStatus(AgentController::tr("Analysis cancelled."));
+            self->finishActiveAssistantMessage(AgentController::tr("Analysis cancelled."));
+            self->setRunning(false);
+            self->resetRun();
+        }, Qt::QueuedConnection);
+    };
+
+    runtime_->reasoningRun = runtime_->reasoningRunner->run_async(
+        std::move(request),
+        std::move(options));
+    return;
+#else
+    runtime_->runner = std::make_unique<wuwe::llm_agent_runner>(
+        *runtime_->client,
+        runtime_->provider);
+
     wuwe::llm_request request;
     request.model = toStdString(settings.model);
     request.temperature = 0.2;
     request.messages.push_back({
         .role = "system",
-        .content =
-            "You are an expert HarmonyOS NEXT application reverse engineering assistant embedded in ReArk. "
-            "Use ReArk tools whenever you need package, source, disassembly, resource, signature, or entry-point data. "
-            "When user-provided reference documents are attached, use search_reference_knowledge for external "
-            "HarmonyOS, reverse engineering, security, or app analysis knowledge before giving detailed conclusions. "
-            "Be concise, evidence-based, and mention when requested data is not loaded yet."
-    });
-    if (knowledgeController_ != nullptr && knowledgeController_->hasReadyReferences()) {
-        request.messages.push_back({
-            .role = "system",
-            .content = toStdString(QStringLiteral("Attached reference documents for this chat:\n%1")
-                .arg(knowledgeController_->referenceSummaryForPrompt()))
-        });
-    }
-    request.messages.push_back({
-        .role = "system",
-        .content = toStdString(QStringLiteral("Current ReArk snapshot:\n%1")
-            .arg(snapshot->packageSummary.isEmpty() ? QStringLiteral("<none>") : snapshot->packageSummary))
+        .content = toStdString(systemPrompt)
     });
     for (const QVariant& item : messages_) {
         const QVariantMap message = item.toMap();
@@ -747,7 +959,6 @@ void AgentController::ask(const QString& question)
         });
     }
 
-    QPointer<AgentController> self(this);
     wuwe::llm_agent_run_options options;
     options.stop_token = runtime_->stopSource.get_token();
     options.callbacks.on_delta = [self](std::string_view text) {
@@ -833,6 +1044,7 @@ void AgentController::ask(const QString& question)
 
     runtime_->run = runtime_->runner->run_async(std::move(request), std::move(options));
 #endif
+#endif
 }
 
 void AgentController::cancel()
@@ -844,6 +1056,16 @@ void AgentController::cancel()
     }
 
 #ifdef REARK_HAS_WUWE
+#ifdef REARK_HAS_WUWE_REASONING
+    if (runtime_->reasoningRun.has_value()) {
+        runtime_->stopSource.request_stop();
+        if (runtime_->reasoningRun->valid()) {
+            runtime_->reasoningRun->request_stop();
+        }
+        setStatus(tr("Cancelling..."));
+        return;
+    }
+#endif
     if (runtime_->run.has_value()) {
         runtime_->stopSource.request_stop();
         if (runtime_->run->valid()) {
@@ -867,6 +1089,7 @@ void AgentController::newChat()
     resetRun();
     setRunning(false);
     clearMessages();
+    clearReasoningDetails();
     if (knowledgeController_ != nullptr) {
         knowledgeController_->clearSessionReferences();
     }
@@ -908,6 +1131,11 @@ void AgentController::clearMessages()
     activeAssistantMessage_ = -1;
     emit messagesChanged();
     setTranscript({});
+}
+
+void AgentController::clearReasoningDetails()
+{
+    setReasoningDetails({}, {}, {});
 }
 
 void AgentController::appendMessage(const QString& role, const QString& text, const QString& state)
@@ -1009,9 +1237,37 @@ void AgentController::setStatus(const QString& status)
     emit statusChanged();
 }
 
+void AgentController::setReasoningDetails(
+    const QString& resultJson,
+    const QString& traceJson,
+    const QString& usageJson)
+{
+    if (reasoningResultJson_ == resultJson
+        && reasoningTraceJson_ == traceJson
+        && reasoningUsageJson_ == usageJson) {
+        return;
+    }
+
+    reasoningResultJson_ = resultJson;
+    reasoningTraceJson_ = traceJson;
+    reasoningUsageJson_ = usageJson;
+    emit reasoningDetailsChanged();
+}
+
 void AgentController::resetRun()
 {
 #ifdef REARK_HAS_WUWE
+#ifdef REARK_HAS_WUWE_REASONING
+    if (runtime_->reasoningRun.has_value()) {
+        runtime_->stopSource.request_stop();
+        if (runtime_->reasoningRun->valid()) {
+            runtime_->reasoningRun->request_stop();
+            runtime_->reasoningRun->wait();
+        }
+        runtime_->reasoningRun.reset();
+    }
+    runtime_->reasoningRunner.reset();
+#endif
     if (runtime_->run.has_value()) {
         runtime_->stopSource.request_stop();
         if (runtime_->run->valid()) {
@@ -1021,6 +1277,8 @@ void AgentController::resetRun()
     }
     runtime_->runner.reset();
     runtime_->provider.reset();
+    runtime_->knowledgeProvider.reset();
+    runtime_->rearkProvider.reset();
     runtime_->client.reset();
     runtime_->stopSource = std::stop_source {};
 #endif

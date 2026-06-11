@@ -350,18 +350,6 @@ Rectangle {
                                 }
                             }
 
-                            SettingRow {
-                                id: tikaUrlRow
-
-                                title: qsTr("Agent: Tika URL")
-                                description: qsTr("Optional Apache Tika server URL for PDF and Office reference documents.")
-
-                                SettingsTextField {
-                                    id: tikaUrlField
-                                    Layout.preferredWidth: 460
-                                }
-                            }
-
                             Rectangle {
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 1
@@ -533,7 +521,6 @@ Rectangle {
         embeddingModelField.text = settingsController.agentEmbeddingModel
         embeddingApiKeyField.text = settingsController.agentEmbeddingApiKey
         embeddingRequireApiKeyBox.checked = settingsController.agentEmbeddingRequireApiKey
-        tikaUrlField.text = settingsController.agentTikaUrl
         saveMessage = ""
     }
 
@@ -556,7 +543,6 @@ Rectangle {
             || embeddingModelRow.visible
             || embeddingApiKeyRow.visible
             || embeddingRequireApiKeyRow.visible
-            || tikaUrlRow.visible
     }
 
     function saveAgentSettings() {
@@ -572,8 +558,7 @@ Rectangle {
             embeddingBaseUrlField.text,
             embeddingApiKeyField.text,
             embeddingModelField.text,
-            embeddingRequireApiKeyBox.checked,
-            tikaUrlField.text)
+            embeddingRequireApiKeyBox.checked)
         saveMessage = saved ? qsTr("Agent settings saved.") : ""
         return saved
     }

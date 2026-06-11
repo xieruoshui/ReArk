@@ -16,7 +16,6 @@ class SettingsController : public QObject {
     Q_PROPERTY(QString agentEmbeddingApiKey READ agentEmbeddingApiKey WRITE setAgentEmbeddingApiKey NOTIFY agentSettingsChanged)
     Q_PROPERTY(QString agentEmbeddingModel READ agentEmbeddingModel WRITE setAgentEmbeddingModel NOTIFY agentSettingsChanged)
     Q_PROPERTY(bool agentEmbeddingRequireApiKey READ agentEmbeddingRequireApiKey WRITE setAgentEmbeddingRequireApiKey NOTIFY agentSettingsChanged)
-    Q_PROPERTY(QString agentTikaUrl READ agentTikaUrl WRITE setAgentTikaUrl NOTIFY agentSettingsChanged)
     Q_PROPERTY(QString agentValidationMessage READ agentValidationMessage NOTIFY agentValidationChanged)
 
 public:
@@ -46,9 +45,6 @@ public:
     [[nodiscard]] bool agentEmbeddingRequireApiKey() const;
     void setAgentEmbeddingRequireApiKey(bool agentEmbeddingRequireApiKey);
 
-    [[nodiscard]] QString agentTikaUrl() const;
-    void setAgentTikaUrl(const QString& agentTikaUrl);
-
     [[nodiscard]] QString agentValidationMessage() const;
 
     Q_INVOKABLE void reload();
@@ -60,8 +56,7 @@ public:
         const QString& embeddingBaseUrl,
         const QString& embeddingApiKey,
         const QString& embeddingModel,
-        bool embeddingRequireApiKey,
-        const QString& tikaUrl);
+        bool embeddingRequireApiKey);
     Q_INVOKABLE void resetAgentSettings();
 
 signals:
@@ -80,7 +75,6 @@ private:
     QString agentEmbeddingBaseUrl_;
     QString agentEmbeddingApiKey_;
     QString agentEmbeddingModel_;
-    QString agentTikaUrl_;
     QString agentValidationMessage_;
     bool agentRequireApiKey_ = true;
     bool agentEmbeddingRequireApiKey_ = true;

@@ -22,7 +22,6 @@ constexpr auto kAgentEmbeddingApiKeyKey = "Agent/EmbeddingApiKey";
 constexpr auto kAgentProtectedEmbeddingApiKeyKey = "Agent/EmbeddingApiKeyProtected";
 constexpr auto kAgentEmbeddingModelKey = "Agent/EmbeddingModel";
 constexpr auto kAgentEmbeddingRequireApiKeyKey = "Agent/EmbeddingRequireApiKey";
-constexpr auto kAgentTikaUrlKey = "Agent/TikaUrl";
 constexpr auto kDefaultBaseUrl = "https://openrouter.ai/api";
 constexpr auto kDefaultModel = "openai/gpt-4o-mini";
 constexpr auto kDefaultEmbeddingModel = "text-embedding-3-small";
@@ -186,7 +185,6 @@ AgentSettings AgentSettingsStore::load()
     result.embeddingRequireApiKey = settings.value(
         QString::fromLatin1(kAgentEmbeddingRequireApiKeyKey),
         envBool("REARK_EMBEDDING_REQUIRE_API_KEY", defaultEmbeddingRequireApiKey(result.embeddingBaseUrl))).toBool();
-    result.tikaUrl = settings.value(QString::fromLatin1(kAgentTikaUrlKey), defaultTikaUrl()).toString().trimmed();
     return result;
 }
 
@@ -199,7 +197,6 @@ bool AgentSettingsStore::save(const AgentSettings& settings)
     qsettings.setValue(QString::fromLatin1(kAgentEmbeddingBaseUrlKey), settings.embeddingBaseUrl.trimmed());
     qsettings.setValue(QString::fromLatin1(kAgentEmbeddingModelKey), settings.embeddingModel.trimmed());
     qsettings.setValue(QString::fromLatin1(kAgentEmbeddingRequireApiKeyKey), settings.embeddingRequireApiKey);
-    qsettings.setValue(QString::fromLatin1(kAgentTikaUrlKey), settings.tikaUrl.trimmed());
 
     return saveProtectedKey(qsettings, kAgentProtectedApiKeyKey, kAgentApiKeyKey, settings.apiKey)
         && saveProtectedKey(
@@ -222,7 +219,6 @@ void AgentSettingsStore::reset()
     settings.remove(QString::fromLatin1(kAgentProtectedEmbeddingApiKeyKey));
     settings.remove(QString::fromLatin1(kAgentEmbeddingModelKey));
     settings.remove(QString::fromLatin1(kAgentEmbeddingRequireApiKeyKey));
-    settings.remove(QString::fromLatin1(kAgentTikaUrlKey));
 }
 
 QString AgentSettingsStore::validationMessage(const AgentSettings& settings)
@@ -268,15 +264,6 @@ QString AgentSettingsStore::knowledgeValidationMessage(const AgentSettings& sett
 
     if (settings.embeddingRequireApiKey && settings.embeddingApiKey.isEmpty()) {
         return QCoreApplication::translate("AgentSettings", "Embedding API key is required for this endpoint.");
-    }
-
-    const QString tikaUrl = settings.tikaUrl.trimmed();
-    if (!tikaUrl.isEmpty()) {
-        const QUrl tika(tikaUrl);
-        if (!tika.isValid() || tika.scheme().isEmpty() || tika.host().isEmpty()
-            || (tika.scheme() != QStringLiteral("http") && tika.scheme() != QStringLiteral("https"))) {
-            return QCoreApplication::translate("AgentSettings", "Tika URL must be a valid HTTP or HTTPS endpoint.");
-        }
     }
 
     return {};
@@ -329,9 +316,4 @@ QString AgentSettingsStore::defaultEmbeddingModel()
 bool AgentSettingsStore::defaultEmbeddingRequireApiKey(const QString& baseUrl)
 {
     return !looksLocalEndpoint(baseUrl.isEmpty() ? defaultEmbeddingBaseUrl() : baseUrl.trimmed());
-}
-
-QString AgentSettingsStore::defaultTikaUrl()
-{
-    return envString("REARK_TIKA_URL");
 }

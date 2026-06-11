@@ -21,6 +21,10 @@ class AgentController : public QObject {
     Q_PROPERTY(bool hasMessages READ hasMessages NOTIFY messagesChanged)
     Q_PROPERTY(QString errorMessage READ errorMessage NOTIFY errorMessageChanged)
     Q_PROPERTY(QString status READ status NOTIFY statusChanged)
+    Q_PROPERTY(bool hasReasoningDetails READ hasReasoningDetails NOTIFY reasoningDetailsChanged)
+    Q_PROPERTY(QString reasoningResultJson READ reasoningResultJson NOTIFY reasoningDetailsChanged)
+    Q_PROPERTY(QString reasoningTraceJson READ reasoningTraceJson NOTIFY reasoningDetailsChanged)
+    Q_PROPERTY(QString reasoningUsageJson READ reasoningUsageJson NOTIFY reasoningDetailsChanged)
 
 public:
     explicit AgentController(
@@ -36,6 +40,10 @@ public:
     [[nodiscard]] bool hasMessages() const;
     [[nodiscard]] QString errorMessage() const;
     [[nodiscard]] QString status() const;
+    [[nodiscard]] bool hasReasoningDetails() const;
+    [[nodiscard]] QString reasoningResultJson() const;
+    [[nodiscard]] QString reasoningTraceJson() const;
+    [[nodiscard]] QString reasoningUsageJson() const;
 
     Q_INVOKABLE void ask(const QString& question);
     Q_INVOKABLE void cancel();
@@ -48,6 +56,7 @@ signals:
     void messagesChanged();
     void errorMessageChanged();
     void statusChanged();
+    void reasoningDetailsChanged();
 
 private:
     struct Runtime;
@@ -62,6 +71,8 @@ private:
     void appendTranscript(const QString& text);
     void setErrorMessage(const QString& errorMessage);
     void setStatus(const QString& status);
+    void clearReasoningDetails();
+    void setReasoningDetails(const QString& resultJson, const QString& traceJson, const QString& usageJson);
     void resetRun();
     [[nodiscard]] QString unavailableMessage() const;
 
@@ -72,6 +83,9 @@ private:
     QVariantList messages_;
     QString errorMessage_;
     QString status_;
+    QString reasoningResultJson_;
+    QString reasoningTraceJson_;
+    QString reasoningUsageJson_;
     int activeAssistantMessage_ = -1;
     bool running_ = false;
 };

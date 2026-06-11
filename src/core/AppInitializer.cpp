@@ -11,6 +11,7 @@
 #include "core/ResourcePreviewProvider.h"
 #include "core/WindowChrome.h"
 #include "model/RecentFilesModel.h"
+#include "presentation/MarkdownRenderer.h"
 
 #include <QIcon>
 #include <QObject>
@@ -59,6 +60,7 @@ void AppInitializer::initializeContext()
     agentController_ = new AgentController(decompilerController_, agentKnowledgeController_, &engine_);
     languageController_ = new LanguageController(&engine_, &engine_);
     buildInfoProvider_ = new BuildInfoProvider(languageController_, &engine_);
+    markdownRenderer_ = new MarkdownRenderer(&engine_);
     recentFilesModel_ = new RecentFilesModel(&engine_);
     settingsController_ = new SettingsController(&engine_);
     updateController_ = new UpdateController(&engine_);
@@ -74,6 +76,7 @@ void AppInitializer::initializeContext()
     context->setContextProperty(QStringLiteral("appVersion"), QStringLiteral(REARK_VERSION));
     context->setContextProperty(QStringLiteral("applicationController"), applicationController_);
     context->setContextProperty(QStringLiteral("buildInfo"), buildInfoProvider_);
+    context->setContextProperty(QStringLiteral("markdownRenderer"), markdownRenderer_);
     context->setContextProperty(QStringLiteral("recentFilesModel"), recentFilesModel_);
     context->setContextProperty(QStringLiteral("initialFileUrl"), initialFileUrl_);
     context->setContextProperty(QStringLiteral("decompilerController"), decompilerController_);

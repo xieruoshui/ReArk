@@ -130,22 +130,6 @@ void SettingsController::setAgentEmbeddingRequireApiKey(bool agentEmbeddingRequi
     emit agentSettingsChanged();
 }
 
-QString SettingsController::agentTikaUrl() const
-{
-    return agentTikaUrl_;
-}
-
-void SettingsController::setAgentTikaUrl(const QString& agentTikaUrl)
-{
-    const QString trimmed = agentTikaUrl.trimmed();
-    if (agentTikaUrl_ == trimmed) {
-        return;
-    }
-
-    agentTikaUrl_ = trimmed;
-    emit agentSettingsChanged();
-}
-
 QString SettingsController::agentValidationMessage() const
 {
     return agentValidationMessage_;
@@ -161,7 +145,6 @@ void SettingsController::reload()
     const QString previousEmbeddingApiKey = agentEmbeddingApiKey_;
     const QString previousEmbeddingModel = agentEmbeddingModel_;
     const bool previousEmbeddingRequireApiKey = agentEmbeddingRequireApiKey_;
-    const QString previousTikaUrl = agentTikaUrl_;
 
     loadAgentSettings();
 
@@ -172,15 +155,13 @@ void SettingsController::reload()
         || agentEmbeddingBaseUrl_ != previousEmbeddingBaseUrl
         || agentEmbeddingApiKey_ != previousEmbeddingApiKey
         || agentEmbeddingModel_ != previousEmbeddingModel
-        || agentEmbeddingRequireApiKey_ != previousEmbeddingRequireApiKey
-        || agentTikaUrl_ != previousTikaUrl) {
+        || agentEmbeddingRequireApiKey_ != previousEmbeddingRequireApiKey) {
         emit agentSettingsChanged();
     }
     if (agentEmbeddingBaseUrl_ != previousEmbeddingBaseUrl
         || agentEmbeddingApiKey_ != previousEmbeddingApiKey
         || agentEmbeddingModel_ != previousEmbeddingModel
-        || agentEmbeddingRequireApiKey_ != previousEmbeddingRequireApiKey
-        || agentTikaUrl_ != previousTikaUrl) {
+        || agentEmbeddingRequireApiKey_ != previousEmbeddingRequireApiKey) {
         emit agentKnowledgeSettingsChanged();
     }
 }
@@ -193,8 +174,7 @@ bool SettingsController::saveAgentSettings(
     const QString& embeddingBaseUrl,
     const QString& embeddingApiKey,
     const QString& embeddingModel,
-    bool embeddingRequireApiKey,
-    const QString& tikaUrl)
+    bool embeddingRequireApiKey)
 {
     AgentSettings settings {
         .baseUrl = baseUrl.trimmed(),
@@ -204,8 +184,7 @@ bool SettingsController::saveAgentSettings(
         .embeddingBaseUrl = embeddingBaseUrl.trimmed(),
         .embeddingApiKey = embeddingApiKey,
         .embeddingModel = embeddingModel.trimmed(),
-        .embeddingRequireApiKey = embeddingRequireApiKey,
-        .tikaUrl = tikaUrl.trimmed()
+        .embeddingRequireApiKey = embeddingRequireApiKey
     };
 
     const QString validationMessage = AgentSettingsStore::validationMessage(settings);
@@ -240,7 +219,6 @@ void SettingsController::loadAgentSettings()
     agentEmbeddingApiKey_ = settings.embeddingApiKey;
     agentEmbeddingModel_ = settings.embeddingModel;
     agentEmbeddingRequireApiKey_ = settings.embeddingRequireApiKey;
-    agentTikaUrl_ = settings.tikaUrl;
     setAgentValidationMessage({});
 }
 
@@ -253,13 +231,11 @@ void SettingsController::setAgentSettings(const AgentSettings& settings)
         || agentEmbeddingBaseUrl_ != settings.embeddingBaseUrl
         || agentEmbeddingApiKey_ != settings.embeddingApiKey
         || agentEmbeddingModel_ != settings.embeddingModel
-        || agentEmbeddingRequireApiKey_ != settings.embeddingRequireApiKey
-        || agentTikaUrl_ != settings.tikaUrl;
+        || agentEmbeddingRequireApiKey_ != settings.embeddingRequireApiKey;
     const bool knowledgeChanged = agentEmbeddingBaseUrl_ != settings.embeddingBaseUrl
         || agentEmbeddingApiKey_ != settings.embeddingApiKey
         || agentEmbeddingModel_ != settings.embeddingModel
-        || agentEmbeddingRequireApiKey_ != settings.embeddingRequireApiKey
-        || agentTikaUrl_ != settings.tikaUrl;
+        || agentEmbeddingRequireApiKey_ != settings.embeddingRequireApiKey;
 
     agentBaseUrl_ = settings.baseUrl;
     agentApiKey_ = settings.apiKey;
@@ -269,7 +245,6 @@ void SettingsController::setAgentSettings(const AgentSettings& settings)
     agentEmbeddingApiKey_ = settings.embeddingApiKey;
     agentEmbeddingModel_ = settings.embeddingModel;
     agentEmbeddingRequireApiKey_ = settings.embeddingRequireApiKey;
-    agentTikaUrl_ = settings.tikaUrl;
 
     if (changed) {
         emit agentSettingsChanged();

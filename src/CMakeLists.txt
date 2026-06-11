@@ -48,6 +48,8 @@ qt_add_executable(${PROJECT_NAME}
     presentation/CodeEditorItem.h
     presentation/HexViewerItem.cpp
     presentation/HexViewerItem.h
+    presentation/MarkdownRenderer.cpp
+    presentation/MarkdownRenderer.h
     presentation/SyntaxThemeProvider.cpp
     presentation/SyntaxThemeProvider.h
     ${WIN32_RESOURCES}

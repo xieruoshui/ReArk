@@ -25,6 +25,14 @@ Rectangle {
     readonly property bool hasMessages: agentController !== null && agentController.hasMessages
     readonly property string agentError: agentController !== null ? agentController.errorMessage : ""
     readonly property string agentStatus: agentController !== null ? agentController.status : ""
+    readonly property bool hasReasoningDetails: agentController !== null && agentController.hasReasoningDetails
+    readonly property string reasoningResultJson: agentController !== null ? agentController.reasoningResultJson : ""
+    readonly property string reasoningTraceJson: agentController !== null ? agentController.reasoningTraceJson : ""
+    readonly property string reasoningUsageJson: agentController !== null ? agentController.reasoningUsageJson : ""
+    property int detailsTabIndex: 0
+    readonly property string activeDetailsJson: detailsTabIndex === 0
+            ? reasoningResultJson
+            : (detailsTabIndex === 1 ? reasoningTraceJson : reasoningUsageJson)
     readonly property string unavailableStatus: agentStatus.length > 0
             ? agentStatus
             : qsTr("Smart analysis is temporarily unavailable.")
@@ -54,7 +62,8 @@ Rectangle {
     readonly property color newChatBorderColor: darkTheme ? "#344255" : "#d7e0ed"
     readonly property real panelShadowOpacity: darkTheme ? 0.28 : 0.13
     readonly property real buttonShadowOpacity: darkTheme ? 0.22 : 0.1
-    readonly property int contentWidth: Math.min(930, Math.max(660, width - 264))
+    readonly property int contentGutter: width < 720 ? 18 : (width < 1080 ? 72 : 132)
+    readonly property int contentWidth: Math.max(280, Math.min(930, width - contentGutter * 2))
 
     function firstReferenceError() {
         for (let i = 0; i < referenceDocuments.length; ++i) {
@@ -139,6 +148,51 @@ Rectangle {
         }
     }
 
+    Button {
+        id: detailsButton
+
+        anchors.top: parent.top
+        anchors.right: newChatButton.left
+        anchors.topMargin: 18
+        anchors.rightMargin: 10
+        width: Math.max(104, detailsButtonText.implicitWidth + 28)
+        height: 34
+        padding: 0
+        hoverEnabled: true
+        visible: root.hasReasoningDetails
+        layer.enabled: true
+        layer.effect: MultiEffect {
+            shadowEnabled: true
+            shadowBlur: 0.75
+            shadowOpacity: root.buttonShadowOpacity
+            shadowVerticalOffset: 5
+        }
+
+        background: Rectangle {
+            radius: height / 2
+            color: detailsButton.hovered ? root.newChatHoverColor : root.newChatColor
+            border.width: 1
+            border.color: root.newChatBorderColor
+        }
+
+        contentItem: Text {
+            id: detailsButtonText
+
+            text: qsTr("Run Details")
+            color: root.primaryTextColor
+            font.pixelSize: 13
+            font.weight: Font.DemiBold
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            renderType: Text.NativeRendering
+        }
+
+        onClicked: {
+            root.detailsTabIndex = 0
+            reasoningDetailsDialog.open()
+        }
+    }
+
     Label {
         id: emptyTitle
 
@@ -149,7 +203,7 @@ Rectangle {
         visible: !root.hasMessages
         text: qsTr("What would you like to ask?")
         color: root.primaryTextColor
-        font.pixelSize: 34
+        font.pixelSize: root.width < 520 ? 28 : 34
         font.weight: Font.Bold
         horizontalAlignment: Text.AlignHCenter
     }
@@ -191,7 +245,9 @@ Rectangle {
             readonly property string messageText: modelData.text || ""
             readonly property string messageTime: modelData.time || ""
             readonly property bool copied: root.copiedMessageIndex === index
-            readonly property real maxBubbleWidth: Math.min(root.contentWidth * 0.78, 720)
+            readonly property real maxBubbleWidth: Math.min(
+                root.contentWidth,
+                messageDelegate.userMessage ? Math.max(220, root.contentWidth * 0.78) : 760)
 
             width: chatList.width
             height: messageColumn.implicitHeight
@@ -228,7 +284,7 @@ Rectangle {
                         shadowVerticalOffset: 3
                     }
 
-                    TextEdit {
+                    MarkdownMessage {
                         id: messageBody
 
                         anchors.left: parent.left
@@ -237,18 +293,13 @@ Rectangle {
                         anchors.leftMargin: 15
                         anchors.rightMargin: 15
                         anchors.topMargin: 11
-                        readOnly: true
-                        selectByMouse: true
-                        wrapMode: TextEdit.Wrap
-                        textFormat: TextEdit.PlainText
-                        text: messageDelegate.messageText.length > 0
-                              ? messageDelegate.messageText
-                              : (messageDelegate.streaming ? qsTr("Thinking...") : "")
-                        color: root.primaryTextColor
-                        selectedTextColor: "#ffffff"
-                        selectionColor: root.accentColor
-                        font.pixelSize: 13
-                        opacity: messageDelegate.messageText.length > 0 ? 1.0 : 0.66
+                        markdown: messageDelegate.messageText
+                        markdownEnabled: !messageDelegate.userMessage
+                        emptyText: messageDelegate.streaming ? qsTr("Thinking...") : ""
+                        darkTheme: root.darkTheme
+                        textColor: root.primaryTextColor
+                        accentColor: root.accentColor
+                        textPixelSize: 13
                     }
                 }
 
@@ -688,6 +739,103 @@ Rectangle {
                 root.agentKnowledgeController.addReferenceUrl(root.pendingReferenceUrl)
             }
             root.pendingReferenceUrl = ""
+        }
+    }
+
+    Dialog {
+        id: reasoningDetailsDialog
+
+        title: qsTr("Run Details")
+        modal: true
+        standardButtons: Dialog.Close
+        width: Math.min(880, root.width - 96)
+        height: Math.min(620, root.height - 120)
+        x: Math.round((root.width - width) / 2)
+        y: Math.round((root.height - height) / 2)
+
+        background: Rectangle {
+            radius: 8
+            color: root.panelColor
+            border.width: 1
+            border.color: root.borderColor
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 12
+
+            TabBar {
+                id: detailsTabs
+
+                Layout.fillWidth: true
+                currentIndex: root.detailsTabIndex
+
+                onCurrentIndexChanged: root.detailsTabIndex = currentIndex
+
+                TabButton {
+                    text: qsTr("Result")
+                    width: Math.max(96, implicitWidth)
+                }
+
+                TabButton {
+                    text: qsTr("Trace")
+                    width: Math.max(96, implicitWidth)
+                }
+
+                TabButton {
+                    text: qsTr("Usage")
+                    width: Math.max(96, implicitWidth)
+                }
+            }
+
+            ScrollView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+
+                TextArea {
+                    id: detailsText
+
+                    readOnly: true
+                    selectByMouse: true
+                    wrapMode: TextEdit.NoWrap
+                    text: root.activeDetailsJson.length > 0
+                            ? root.activeDetailsJson
+                            : qsTr("No details were recorded for this section.")
+                    color: root.primaryTextColor
+                    selectedTextColor: "#ffffff"
+                    selectionColor: root.accentColor
+                    font.family: "Consolas, Courier New, monospace"
+                    font.pixelSize: 12
+                    background: Rectangle {
+                        radius: 6
+                        color: root.darkTheme ? "#101722" : "#f6f8fc"
+                        border.width: 1
+                        border.color: root.borderColor
+                    }
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+
+                Label {
+                    Layout.fillWidth: true
+                    text: qsTr("Structured reasoning output from Wuwe.")
+                    color: root.secondaryTextColor
+                    font.pixelSize: 11
+                    elide: Text.ElideRight
+                }
+
+                Button {
+                    text: qsTr("Copy JSON")
+                    enabled: root.activeDetailsJson.length > 0
+                    onClicked: {
+                        if (root.agentController !== null) {
+                            root.agentController.copyTextToClipboard(root.activeDetailsJson)
+                        }
+                    }
+                }
+            }
         }
     }
 

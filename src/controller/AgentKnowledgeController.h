@@ -11,6 +11,12 @@
 #include <thread>
 #include <vector>
 
+#ifdef REARK_HAS_WUWE
+namespace wuwe::agent::knowledge {
+class knowledge_tool_provider;
+}
+#endif
+
 class AgentKnowledgeController : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool available READ available CONSTANT)
@@ -39,10 +45,14 @@ public:
     Q_INVOKABLE void cancel();
 
     [[nodiscard]] QString referenceSummaryForPrompt() const;
-    [[nodiscard]] QString searchReferencesForAgent(
-        const QString& query,
-        int limit,
-        std::stop_token stopToken) const;
+    [[nodiscard]] QString referenceSessionId() const;
+#ifdef REARK_HAS_WUWE
+    struct KnowledgeToolProviderHandle {
+        std::shared_ptr<void> runtime;
+        std::shared_ptr<wuwe::agent::knowledge::knowledge_tool_provider> provider;
+    };
+    [[nodiscard]] std::shared_ptr<KnowledgeToolProviderHandle> createKnowledgeToolProvider() const;
+#endif
 
 signals:
     void busyChanged();

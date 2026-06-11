@@ -11,6 +11,7 @@ class AgentController;
 class AgentKnowledgeController;
 class DecompilerController;
 class LanguageController;
+class MarkdownRenderer;
 class RecentFilesModel;
 class ResourcePreviewProvider;
 class SettingsController;
@@ -36,6 +37,7 @@ private:
     AgentKnowledgeController* agentKnowledgeController_ = nullptr;
     AgentController* agentController_ = nullptr;
     BuildInfoProvider* buildInfoProvider_ = nullptr;
+    MarkdownRenderer* markdownRenderer_ = nullptr;
     ResourcePreviewProvider* resourcePreviewProvider_ = nullptr;
     RecentFilesModel* recentFilesModel_ = nullptr;
     DecompilerController* decompilerController_ = nullptr;
