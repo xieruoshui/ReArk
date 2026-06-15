@@ -15,9 +15,22 @@ ReArk is built for legally authorized application analysis and security research
 - View decompiled source, disassembly, formatted JSON, images, media, text, and hex content.
 - Search and quick-open files from the package tree.
 - Inspect package signature and certificate information.
-- Switch UI language between English, Simplified Chinese, and system language.
-- Use dark, light, or system theme.
-- Use ReArk Agent for optional smart analysis with configurable model and knowledge settings.
+- Use ReArk Agent for contextual app analysis with model provider presets, tool-assisted package inspection, and reference knowledge indexing.
+- Navigate a desktop UI designed for reverse engineering workflows.
+
+## Screenshots
+
+| Workspace overview | Ark disassembly |
+| --- | --- |
+| <img src="assets/screenshots/01-overview.png" alt="ReArk workspace overview" width="420"> | <img src="assets/screenshots/02-disassembly.png" alt="Ark bytecode disassembly" width="420"> |
+
+| ABC / Hex inspection | Decompiled pages |
+| --- | --- |
+| <img src="assets/screenshots/03-abc-hex-view.png" alt="ABC and Hex inspection" width="420"> | <img src="assets/screenshots/04-pages-discompile.png" alt="Decompiled page source" width="420"> |
+
+| ReArk Agent | Agent analysis |
+| --- | --- |
+| <img src="assets/screenshots/05-ReArk-agent.png" alt="ReArk Agent workspace" width="420"> | <img src="assets/screenshots/06-ReArk-agent-analysis.png" alt="ReArk Agent analysis result" width="420"> |
 
 ## Quick Start
 
@@ -29,9 +42,13 @@ Download and run the Windows installer:
 
 ## ReArk Agent
 
-ReArk Agent is optional. It can answer questions about the currently opened app, summarize findings, and use attached reference documents when knowledge indexing is configured.
+ReArk Agent brings model-assisted reverse engineering directly into the workspace. It can analyze the currently opened application, inspect package metadata and file content on demand, read relevant decompiled source or disassembly, and produce structured answers from the same context you are viewing in ReArk.
 
-The Agent is designed to avoid exposing internal tool names or implementation details in user-facing answers. Its Markdown output also follows a compatibility policy that avoids unstable emoji composition sequences such as keycap emoji.
+It supports multiple model providers and deployment styles, including OpenRouter, OpenAI, OpenAI-compatible endpoints, Anthropic, Gemini, Ollama, DeepSeek, DashScope, and Qwen. Provider presets include default endpoints and recommended models, while advanced users can override base URLs, model names, API key requirements, and embedding settings.
+
+ReArk Agent also supports reference knowledge indexing. You can attach documents such as Markdown, text, HTML, JSON, CSV, PDF, DOCX, PPTX, and XLSX files, then ask questions that combine package context with your own reference material.
+
+The Agent is designed for product-facing answers: it avoids exposing internal tool names or implementation details, follows the user's language, and keeps Markdown output compatible with ReArk's renderer.
 
 ## Safety and Privacy
 
